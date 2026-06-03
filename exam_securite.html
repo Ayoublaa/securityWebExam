@@ -20,7 +20,7 @@
   --mono: 'Space Mono', monospace;
   --sans: 'DM Sans', sans-serif;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-shrink: border-box; box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
@@ -105,10 +105,10 @@ body::before {
   border-radius: 10px;
   padding: 1.25rem;
   margin-bottom: 12px;
-  transition: border-color .2s;
+  transition: border-color .2s, background .2s;
 }
-.q-card.correct { border-color: var(--accent2); background: #1a2a24; }
-.q-card.wrong { border-color: var(--danger); background: #2a1a1a; }
+.q-card.correct { border-color: var(--accent2); background: #14221c; }
+.q-card.wrong { border-color: var(--danger); background: #221414; }
 .q-num { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
 .q-text { font-size:14px; font-weight:500; margin-bottom:12px; color:var(--text); }
 
@@ -312,9 +312,7 @@ body::before {
   Examen blanc généré pour EMSI · Sécurité Applicative · Tous droits de triche réservés 🔒
 </footer>
 
-</div><!-- /wrap -->
-
-<script>
+</div><script>
 const QCM = [
   {q:"Que signifie l'acronyme OWASP ?",opts:["Open Web Application Security Project","Open Worldwide Application Source Protocol","Online Web Audit Security Platform","Operational Web Application Scanning Procedure"],a:0,exp:"OWASP = Open Web Application Security Project. Il publie le Top 10 des risques applicatifs les plus critiques."},
   {q:"Quel référentiel attribue un identifiant unique à chaque vulnérabilité connue (ex: CVE-2021-44228) ?",opts:["CVSS","CWE","CVE","OWASP Top 10"],a:2,exp:"CVE (Common Vulnerabilities and Exposures), géré par MITRE, attribue un identifiant unique à chaque vulnérabilité connue."},
@@ -339,7 +337,7 @@ const QCM = [
   {q:"Quelle stratégie de protection consiste à n'autoriser que les actions explicitement définies ?",opts:["Liste noire (blacklist)","Token CSRF","Liste blanche (whitelist)","Hachage des entrées"],a:2,exp:"La whitelist (liste blanche) n'autorise que ce qui est prévu. Tout le reste est refusé. C'est plus sûr que la blacklist."},
   {q:"Qu'est-ce qu'une Rainbow Table ?",opts:["Un tableau de bord de monitoring coloré","Un tableau contenant des mots de passe déjà hachés (pré-calculés)","Une liste de vulnérabilités OWASP classées par couleur","Un outil de test de pénétration XSS"],a:1,exp:"Une Rainbow Table contient des mots de passe pré-hachés. Elle accélère la recherche d'un mot de passe à partir de son hash volé."},
   {q:"L'attaque par force brute consiste à :",opts:["Deviner le mot de passe par manipulation sociale","Tester toutes les combinaisons possibles jusqu'à trouver le bon mot de passe","Utiliser une liste de mots de passe connus","Intercepter le trafic réseau chiffré"],a:1,exp:"Force brute = essayer systématiquement toutes les combinaisons. Plus le mot de passe est long et complexe, plus c'est difficile."},
-  {q:"Pour contrer les rainbow tables lors du stockage des mots de passe, on utilise :",opts:["MD5 sans modification","Stocker en Base64","Un sel (salt) aléatoire ajouté avant le hachage","ROT13"],a:1,exp:"Le sel (salt) est une valeur aléatoire ajoutée avant le hachage. Même deux mots de passe identiques auront des hashes différents, rendant les rainbow tables inefficaces."},
+  {q:"Pour contrer les rainbow tables lors du stockage des mots de passe, on utilise :",opts:["MD5 sans modification","Stocker en Base64","Un sel (salt) aléatoire ajouté avant le hachage","ROT13"],a:2,exp:"Le sel (salt) est une valeur aléatoire ajoutée avant le hachage. Même deux mots de passe identiques auront des hashes différents, rendant les rainbow tables inefficaces."},
   {q:"Le phishing est une technique qui consiste à :",opts:["Intercepter le trafic réseau sur un Wi-Fi public","Créer une fausse page ressemblant à un site légitime pour voler les identifiants","Injecter du code SQL dans un formulaire","Exploiter une faille RCE via l'URL"],a:1,exp:"Phishing = fausse page ou faux email imitant un site légitime. La victime croit se connecter au vrai site et donne ses identifiants au pirate."}
 ];
 
@@ -433,8 +431,13 @@ function selectOpt(qi, oi) {
   if (submitted) return;
   answers[qi] = oi;
   document.querySelectorAll(`[id^="opt-${qi}-"]`).forEach(el => el.classList.remove('selected'));
-  document.getElementById(`opt-${qi}-${oi}`).classList.add('selected');
-  let correct = Object.values(answers).filter((v,i) => v === QCM[i].a).length;
+  
+  let selectedLabel = document.getElementById(`opt-${qi}-${oi}`);
+  selectedLabel.classList.add('selected');
+  let radioInput = selectedLabel.querySelector('input[type="radio"]');
+  if(radioInput) radioInput.checked = true;
+
+  let correct = Object.keys(answers).filter(key => answers[key] === QCM[key].a).length;
   document.getElementById('sc-qcm').textContent = correct + ' / 25';
 }
 
@@ -514,62 +517,110 @@ function submitAll() {
   if (submitted) return;
   submitted = true;
   clearInterval(interval);
-  document.getElementById('submit-btn').disabled = true;
-  document.getElementById('submit-btn').textContent = 'Examen soumis ✓';
 
-  let qcmCorrect = 0;
+  // Désactiver le bouton et les champs de saisie
+  document.getElementById('submit-btn').disabled = true;
+  document.querySelectorAll('.open-q, .code-input, input[type=radio]').forEach(el => el.disabled = true);
+
+  let qcmScore = 0;
+
+  // Traitement et correction visuelle du QCM
   QCM.forEach((q, i) => {
-    let ans = answers[i];
-    let card = document.getElementById('qcard-' + i);
-    let fb = document.getElementById('fb-' + i);
-    document.querySelectorAll(`[id^="opt-${i}-"]`).forEach(el => {
-      el.querySelector('input').disabled = true;
-      let j = parseInt(el.id.split('-')[2]);
-      if (j === q.a) el.classList.add('correct-ans');
-      else if (ans === j) el.classList.add('wrong-ans');
-    });
+    let fb = document.getElementById(`fb-${i}`);
     fb.classList.add('show');
-    if (ans === q.a) {
-      qcmCorrect++;
-      card.classList.add('correct');
-      fb.className = 'feedback show ok';
-      fb.textContent = '✓ Correct — ' + q.exp;
+
+    // Affichage des vraies/fausses réponses sur les options
+    for (let j = 0; j < q.opts.length; j++) {
+      let optEl = document.getElementById(`opt-${i}-${j}`);
+      if (j === q.a) {
+        optEl.classList.add('correct-ans');
+      }
+      if (answers[i] === j && j !== q.a) {
+        optEl.classList.add('wrong-ans');
+      }
+    }
+
+    if (answers[i] === q.a) {
+      qcmScore++;
+      fb.className = "feedback show ok";
+      fb.textContent = "✓ Correct ! " + q.exp;
+      document.getElementById(`qcard-${i}`).classList.add('correct');
     } else {
-      card.classList.add('wrong');
-      fb.className = 'feedback show ko';
-      let got = ans !== undefined ? 'Réponse ' + (ans+1) + ' : ' + q.opts[ans] : 'Non répondu';
-      fb.textContent = '✗ ' + got + ' | Bonne réponse : ' + q.opts[q.a] + ' — ' + q.exp;
+      fb.className = "feedback show ko";
+      fb.textContent = "✗ Incorrect. " + q.exp;
+      document.getElementById(`qcard-${i}`).classList.add('wrong');
     }
   });
 
-  let codeScore = Object.values(codeAnswers).reduce((a, b) => a + b, 0);
-  let total = qcmCorrect + codeScore;
-  let pct = Math.round(total / 27 * 100);
+  // Calcul basique pour questions ouvertes (présence de texte structuré)
+  let openScore = 0;
+  OPEN_Q.forEach((_, i) => {
+    let val = document.getElementById(`openq-${i}`).value.trim();
+    if (val.length > 15) openScore++;
+  });
+
+  // Calcul exercices de code
+  let codeScore = 0;
+  CODE_EX.forEach((_, i) => {
+    if (codeAnswers[i] === 1) codeScore++;
+  });
+
+  // Barème arbitraire pour pondérer la note globale
+  // QCM = 25 pts (1/question), Ouvertes = 15 pts (5/question), Code = 10 pts (5/exercice) -> Total = 50 pts
+  let totalPoints = qcmScore + (openScore * 5) + (codeScore * 5);
+  let maxPoints = 25 + (3 * 5) + (2 * 5);
+  let pct = Math.round((totalPoints / maxPoints) * 100);
+
+  // Affichage du panneau des résultats globaux
+  let panel = document.getElementById('results');
+  panel.classList.add('show');
+
+  document.getElementById('res-pct').textContent = pct + '%';
+  document.getElementById('res-pts').textContent = totalPoints + ' / ' + maxPoints + ' pts';
 
   let ring = document.getElementById('score-ring');
-  let gradeEl = document.getElementById('res-grade');
-  let subEl = document.getElementById('res-sub');
-  document.getElementById('res-pct').textContent = pct + '%';
-  document.getElementById('res-pts').textContent = total + '/27 pts';
+  ring.className = 'score-ring';
+  let grade = "", sub = "";
 
-  if (pct >= 85) { ring.className = 'score-ring great'; gradeEl.textContent = 'Excellent 🎯'; subEl.textContent = 'Tu maîtrises très bien le cours. Bonne chance pour le vrai examen !'; ring.querySelector('.pct').style.color='var(--accent2)'; }
-  else if (pct >= 70) { ring.className = 'score-ring good'; gradeEl.textContent = 'Bien 👍'; subEl.textContent = 'Quelques points à consolider, mais les bases sont là.'; ring.querySelector('.pct').style.color='var(--accent)'; }
-  else if (pct >= 55) { ring.className = 'score-ring ok'; gradeEl.textContent = 'Passable ⚠️'; subEl.textContent = 'Révise les chapitres où tu as le plus d'erreurs.'; ring.querySelector('.pct').style.color='var(--warn)'; }
-  else { ring.className = 'score-ring bad'; gradeEl.textContent = 'Insuffisant ❌'; subEl.textContent = 'Reprends le cours depuis le début. Tu peux le faire !'; ring.querySelector('.pct').style.color='var(--danger)'; }
+  if (pct >= 80) {
+    ring.classList.add('great');
+    grade = "Excellent !";
+    sub = "Très bonne maîtrise des vulnérabilités web et des référentiels.";
+  } else if (pct >= 60) {
+    ring.classList.add('good');
+    grade = "Bien joué !";
+    sub = "Bons réflexes de remédiation, continuez ainsi.";
+  } else if (pct >= 40) {
+    ring.classList.add('ok');
+    grade = "Passable";
+    sub = "Attention aux failles critiques (Injections, CSRF).";
+  } else {
+    ring.classList.add('bad');
+    grade = "Insuffisant";
+    sub = "Il est nécessaire de revoir les concepts clés de l'OWASP Top 10.";
+  }
 
-  document.getElementById('recap-grid').innerHTML = `
-    <div class="recap-cell"><div class="rl">QCM</div><div class="val g">${qcmCorrect} / 25</div></div>
-    <div class="recap-cell"><div class="rl">Exercices code</div><div class="val p">${codeScore} / 2</div></div>
-    <div class="recap-cell"><div class="rl">Score QCM</div><div class="val ${qcmCorrect>=18?'g':qcmCorrect>=13?'p':'d'}">${Math.round(qcmCorrect/25*100)}%</div></div>
-    <div class="recap-cell"><div class="rl">Score total</div><div class="val ${pct>=70?'g':pct>=55?'p':'d'}">${pct}%</div></div>`;
+  document.getElementById('res-grade').textContent = grade;
+  document.getElementById('res-sub').textContent = sub;
 
-  document.getElementById('results').classList.add('show');
-  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+  // Remplissage de la grille de récap
+  let recap = document.getElementById('recap-grid');
+  recap.innerHTML = `
+    <div class="recap-cell"><div class="rl">QCM</div><div class="rv p">${qcmScore} / 25</div></div>
+    <div class="recap-cell"><div class="rl">Questions Ouvertes</div><div class="rv g">${openScore} / 3</div></div>
+    <div class="recap-cell"><div class="rl">Exercices Code</div><div class="rv d">${codeScore} / 2</div></div>
+  `;
+
+  // Focus fluide sur les résultats
+  panel.scrollIntoView({ behavior: 'smooth' });
 }
 
-buildQCM();
-buildOpen();
-buildCode();
+// Initialisation globale au chargement de la page
+window.onload = function() {
+  buildQCM();
+  buildOpen();
+  buildCode();
+};
 </script>
 </body>
 </html>
