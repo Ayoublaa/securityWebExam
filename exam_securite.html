@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen — Sécurité Applicative</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f13;
+  --surface: #18181f;
+  --surface2: #22222c;
+  --border: #2e2e3a;
+  --accent: #7c6af7;
+  --accent2: #4fc3a1;
+  --danger: #f06b6b;
+  --warn: #f0a35a;
+  --text: #e8e8f0;
+  --muted: #8888a0;
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* Grid bg */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image: linear-gradient(rgba(124,106,247,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,106,247,.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem; position:relative; z-index:1; }
+
+/* Header */
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.5rem; margin-bottom: 2rem;
+}
+.logo { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+.logo span { color: var(--accent); }
+.timer-outer {
+  display:flex; align-items:center; gap:10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+}
+.timer-label { font-size: 11px; color: var(--muted); font-family: var(--mono); text-transform:uppercase; letter-spacing:1px; }
+#timer-display { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent2); min-width: 70px; }
+#timer-display.warn { color: var(--warn); }
+#timer-display.danger { color: var(--danger); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Hero */
+.hero { margin-bottom: 2.5rem; }
+.hero h1 { font-family: var(--mono); font-size: clamp(22px,4vw,32px); font-weight:700; color: var(--text); line-height:1.2; margin-bottom:.5rem; }
+.hero h1 em { font-style:normal; color: var(--accent); }
+.hero p { color: var(--muted); font-size:14px; }
+.tags { display:flex; gap:8px; flex-wrap:wrap; margin-top:1rem; }
+.tag { font-size:11px; font-family:var(--mono); padding:3px 10px; border-radius:4px; border:1px solid var(--border); color:var(--muted); }
+.tag.blue { border-color:#4a7fa5; color:#78b4dc; }
+.tag.green { border-color:#3a7a5f; color:var(--accent2); }
+.tag.purple { border-color:#5a4a9a; color: var(--accent); }
+
+/* Score strip */
+.score-strip {
+  display:grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
+  gap:10px; margin-bottom:2.5rem;
+}
+.sc-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  padding:12px 16px;
+}
+.sc-card .label { font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.sc-card .val { font-size:20px; font-weight:600; color:var(--text); font-family:var(--mono); }
+
+/* Section title */
+.sec-title {
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:3px;
+  color: var(--accent); margin: 2.5rem 0 1rem;
+  display:flex; align-items:center; gap:10px;
+}
+.sec-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* Q card */
+.q-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.q-card.correct { border-color: var(--accent2); background: #1a2a24; }
+.q-card.wrong { border-color: var(--danger); background: #2a1a1a; }
+.q-num { font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+.q-text { font-size:14px; font-weight:500; margin-bottom:12px; color:var(--text); }
+
+/* Options */
+.opts { display:flex; flex-direction:column; gap:7px; }
+.opt {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 12px; border:1px solid var(--border);
+  border-radius:7px; cursor:pointer; font-size:13px;
+  background:var(--surface2); color:var(--text);
+  transition:all .15s; user-select:none;
+}
+.opt:hover { border-color: var(--accent); background:#1e1a2e; }
+.opt input[type=radio] { margin-top:3px; accent-color:var(--accent); flex-shrink:0; }
+.opt.selected { border-color:var(--accent); background:#1e1a2e; color:#c4bcf9; }
+.opt.correct-ans { border-color:var(--accent2) !important; background:#1a2a24 !important; color:var(--accent2) !important; }
+.opt.wrong-ans { border-color:var(--danger) !important; background:#2a1a1a !important; color:var(--danger) !important; }
+
+/* Feedback */
+.feedback {
+  display:none; margin-top:10px; padding:8px 12px;
+  border-radius:6px; font-size:12px; line-height:1.5;
+}
+.feedback.show { display:block; }
+.feedback.ok { background:#1a2a24; border:1px solid #3a7a5f; color:var(--accent2); }
+.feedback.ko { background:#2a1a1a; border:1px solid #8a3a3a; color:#f09090; }
+
+/* Open Q */
+.open-q {
+  width:100%; background:var(--surface2); border:1px solid var(--border);
+  border-radius:7px; padding:10px 12px; color:var(--text);
+  font-family:var(--sans); font-size:13px; resize:vertical; min-height:80px;
+  outline:none; transition:border-color .2s;
+}
+.open-q:focus { border-color:var(--accent); }
+.model-btn {
+  margin-top:8px; font-size:12px; font-family:var(--mono);
+  padding:5px 14px; background:transparent;
+  border:1px solid var(--border); border-radius:6px;
+  cursor:pointer; color:var(--muted);
+  transition:all .2s;
+}
+.model-btn:hover { border-color:var(--accent); color:var(--accent); }
+.model-ans {
+  display:none; margin-top:8px; padding:12px;
+  background:#1a1a28; border:1px solid #3a3a6a;
+  border-radius:7px; font-size:12px; color:#a0a0c8; line-height:1.6;
+}
+.model-ans.show { display:block; }
+.model-ans strong { color:var(--accent); }
+
+/* Code blocks */
+.code-box {
+  background:#0a0a10; border:1px solid var(--border);
+  border-radius:8px; overflow:hidden; margin:10px 0;
+}
+.code-box .cb-header {
+  background:#13131a; padding:6px 14px;
+  font-family:var(--mono); font-size:10px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:2px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px;
+}
+.cb-dot { width:8px; height:8px; border-radius:50%; background:var(--border); }
+.cb-dot.r { background:#f06b6b; } .cb-dot.y { background:#f0c060; } .cb-dot.g { background:#60c080; }
+.code-box pre { padding:14px; font-family:var(--mono); font-size:12px; line-height:1.7; overflow-x:auto; }
+.kw{color:#cba6f7}.fn{color:#89b4fa}.str{color:#a6e3a1}.cm{color:#555570;font-style:italic}.var{color:#f38ba8}.num{color:#fab387}
+
+.code-input {
+  width:100%; background:#0a0a10; border:1px solid var(--border);
+  border-radius:8px; padding:12px 14px; color:#cdd6f4;
+  font-family:var(--mono); font-size:12px; resize:vertical; min-height:80px;
+  outline:none; line-height:1.7; transition:border-color .2s;
+}
+.code-input:focus { border-color:var(--accent); }
+.run-btn {
+  margin-top:10px; padding:8px 20px;
+  background:var(--accent); color:#fff; border:none;
+  border-radius:7px; cursor:pointer; font-size:13px; font-weight:600;
+  font-family:var(--sans); transition:all .2s;
+}
+.run-btn:hover { background:#6a5ae0; transform:translateY(-1px); }
+.code-result {
+  display:none; margin-top:10px; padding:10px 14px;
+  border-radius:7px; font-size:12px; font-family:var(--mono); line-height:1.6;
+}
+.code-result.show { display:block; }
+.code-result.ok { background:#1a2a24; border:1px solid #3a7a5f; color:var(--accent2); }
+.code-result.ko { background:#2a1a1a; border:1px solid #8a3a3a; color:#f09090; }
+
+/* Submit */
+.submit-wrap { margin-top:2.5rem; text-align:center; }
+.submit-btn {
+  padding:14px 48px; background:linear-gradient(135deg,var(--accent),#5a4ad0);
+  color:#fff; border:none; border-radius:10px;
+  font-size:15px; font-weight:600; font-family:var(--sans);
+  cursor:pointer; letter-spacing:.5px;
+  transition:all .2s; box-shadow:0 4px 20px rgba(124,106,247,.3);
+}
+.submit-btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(124,106,247,.4); }
+.submit-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+/* Results */
+.results-panel {
+  display:none; margin-top:2rem;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; padding:2rem; text-align:center;
+}
+.results-panel.show { display:block; animation:fadeIn .4s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+.score-ring {
+  width:120px; height:120px; margin:0 auto 1.5rem;
+  border-radius:50%; border:4px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column;
+}
+.score-ring.great { border-color:var(--accent2); box-shadow:0 0 30px rgba(79,195,161,.2); }
+.score-ring.good { border-color:var(--accent); box-shadow:0 0 30px rgba(124,106,247,.2); }
+.score-ring.ok { border-color:var(--warn); box-shadow:0 0 30px rgba(240,163,90,.2); }
+.score-ring.bad { border-color:var(--danger); box-shadow:0 0 30px rgba(240,107,107,.2); }
+.score-ring .pct { font-family:var(--mono); font-size:28px; font-weight:700; }
+.score-ring .pts { font-size:11px; color:var(--muted); font-family:var(--mono); }
+.grade-text { font-size:18px; font-weight:600; margin-bottom:.5rem; }
+.grade-sub { font-size:13px; color:var(--muted); }
+.recap-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:1.5rem; }
+.recap-cell { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:left; }
+.recap-cell .rl { font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.recap-cell .rv { font-size:18px; font-family:var(--mono); font-weight:700; }
+.recap-cell .rv.g { color:var(--accent2); }
+.recap-cell .rv.p { color:var(--accent); }
+.recap-cell .rv.d { color:var(--danger); }
+
+/* Footer */
+.site-footer { margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--border); text-align:center; font-size:12px; color:var(--muted); font-family:var(--mono); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+@media(max-width:600px) {
+  .site-header { flex-direction:column; align-items:flex-start; }
+  .hero h1 { font-size:20px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="site-header">
+  <div class="logo"><span>//</span> EMSI — CIR / SID</div>
+  <div class="timer-outer">
+    <span class="timer-label">Temps</span>
+    <span id="timer-display">60:00</span>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Examen blanc —<br><em>Sécurité Applicative</em></h1>
+  <p>30 questions · QCM + questions ouvertes + exercices de code · Durée : 1h</p>
+  <div class="tags">
+    <span class="tag blue">Chap 1 — Référentiels</span>
+    <span class="tag blue">Chap 2 — SQL Injection</span>
+    <span class="tag blue">Chap 3 — XSS</span>
+    <span class="tag purple">Chap 4 — CSRF</span>
+    <span class="tag purple">Chap 5 — RCE</span>
+    <span class="tag green">Chap 6 — Password Guessing</span>
+  </div>
+</div>
+
+<div class="score-strip">
+  <div class="sc-card"><div class="label">QCM</div><div class="val" id="sc-qcm">0 / 25</div></div>
+  <div class="sc-card"><div class="label">Questions ouvertes</div><div class="val" id="sc-open">0 / 3</div></div>
+  <div class="sc-card"><div class="label">Exercices code</div><div class="val" id="sc-code">0 / 2</div></div>
+</div>
+
+<div class="sec-title">Partie 1 — QCM (25 questions)</div>
+<div id="qcm-zone"></div>
+
+<div class="sec-title">Partie 2 — Questions ouvertes (3 questions)</div>
+<div id="open-zone"></div>
+
+<div class="sec-title">Partie 3 — Exercices de code (2 exercices)</div>
+<div id="code-zone"></div>
+
+<div class="submit-wrap">
+  <button class="submit-btn" id="submit-btn" onclick="submitAll()">Soumettre l'examen →</button>
+</div>
+
+<div class="results-panel" id="results">
+  <div class="score-ring" id="score-ring">
+    <div class="pct" id="res-pct">—</div>
+    <div class="pts" id="res-pts">pts</div>
+  </div>
+  <div class="grade-text" id="res-grade">—</div>
+  <div class="grade-sub" id="res-sub">—</div>
+  <div class="recap-grid" id="recap-grid"></div>
+</div>
+
+<footer class="site-footer">
+  Examen blanc généré pour EMSI · Sécurité Applicative · Tous droits de triche réservés 🔒
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+const QCM = [
+  {q:"Que signifie l'acronyme OWASP ?",opts:["Open Web Application Security Project","Open Worldwide Application Source Protocol","Online Web Audit Security Platform","Operational Web Application Scanning Procedure"],a:0,exp:"OWASP = Open Web Application Security Project. Il publie le Top 10 des risques applicatifs les plus critiques."},
+  {q:"Quel référentiel attribue un identifiant unique à chaque vulnérabilité connue (ex: CVE-2021-44228) ?",opts:["CVSS","CWE","CVE","OWASP Top 10"],a:2,exp:"CVE (Common Vulnerabilities and Exposures), géré par MITRE, attribue un identifiant unique à chaque vulnérabilité connue."},
+  {q:"Le CVSS donne une note de gravité sur une échelle de :",opts:["0 à 5","0 à 10","1 à 100","0 à 20"],a:1,exp:"CVSS va de 0 à 10. La faille Log4Shell a eu un score de 9.8/10 (critique)."},
+  {q:"CWE-89 correspond à quelle faiblesse ?",opts:["Cross-Site Scripting","Injection SQL","CSRF","Remote Code Execution"],a:1,exp:"CWE-89 = Injection SQL. CWE-79 = Cross-Site Scripting. Le CWE explique la cause profonde d'une vulnérabilité."},
+  {q:"Quelle phrase résume correctement les rôles de OWASP, CVE, CVSS et CWE ?",opts:["OWASP identifie, CVE mesure, CVSS classe, CWE liste","OWASP montre les grands risques, CVE identifie une faille précise, CVSS mesure sa gravité, CWE explique sa cause","CVE = score, CVSS = identifiant, CWE = liste, OWASP = cause","CWE identifie, OWASP mesure, CVE cause, CVSS liste"],a:1,exp:"La phrase clé : OWASP montre les grands risques, CVE identifie une faille précise, CVSS mesure sa gravité, CWE explique sa cause."},
+  {q:"L'injection SQL se produit principalement quand :",opts:["Le serveur est hors ligne","Les entrées utilisateur sont directement insérées dans une requête SQL sans validation","Le mot de passe est trop court","La page utilise HTTP au lieu de HTTPS"],a:1,exp:"L'injection SQL survient quand les données saisies par l'utilisateur sont intégrées directement dans une requête SQL sans protection suffisante."},
+  {q:"Quelle est la protection la plus importante contre l'injection SQL ?",opts:["Utiliser magic_quotes_gpc","Mettre un CAPTCHA sur le formulaire","Utiliser PDO avec des requêtes préparées","Chiffrer la base de données avec AES"],a:2,exp:"PDO + requêtes préparées = protection principale. Elle sépare le code SQL des données utilisateur, rendant l'injection impossible."},
+  {q:"Dans une requête préparée PDO, que représentent les '?' ?",opts:["Des opérateurs de comparaison SQL","Des marqueurs interrogatifs (placeholders) où les données seront insérées de façon sécurisée","Des commentaires ignorés par le serveur","Des wildcards SQL pour la recherche"],a:1,exp:"Les '?' sont des placeholders (marqueurs interrogatifs). Les données y sont ensuite associées de façon sécurisée via execute([])."},
+  {q:"L'injection SQL peut compromettre :",opts:["Uniquement la confidentialité (vol de données)","Uniquement l'intégrité (modification)","La confidentialité, l'intégrité et la disponibilité","Uniquement la disponibilité (arrêt du service)"],a:2,exp:"L'injection SQL menace les 3 piliers CIA : confidentialité (vol), intégrité (modification/suppression), disponibilité (DROP TABLE...)."},
+  {q:"La directive magic_quotes_gpc est :",opts:["La meilleure protection contre l'injection SQL","Recommandée pour les projets modernes PHP","Obsolète et supprimée en PHP 8.0","Un paramètre de configuration Apache"],a:2,exp:"magic_quotes_gpc est obsolète depuis PHP 7.4 et supprimée en PHP 8.0. Il ne faut pas s'y fier comme protection."},
+  {q:"Quelle attaque cible principalement le navigateur du client (et non le serveur) ?",opts:["Injection SQL","CSRF","XSS (Cross-Site Scripting)","RCE"],a:2,exp:"XSS injecte du JavaScript exécuté côté client dans le navigateur de la victime. SQL Injection cible la base de données côté serveur."},
+  {q:"Quel type de XSS est le plus dangereux car stocké en base de données ?",opts:["Reflected XSS","DOM-Based XSS","Stored XSS (persistant)","Client XSS"],a:2,exp:"Stored XSS = le script malveillant est enregistré en base de données. Chaque visiteur de la page sera affecté automatiquement."},
+  {q:"Pour afficher du contenu utilisateur de façon sécurisée contre XSS, on utilise en PHP :",opts:["strip_tags() uniquement","eval()","htmlspecialchars() ou htmlentities()","base64_encode()"],a:2,exp:"htmlspecialchars() transforme les caractères dangereux (<,>,&,\") en entités HTML inoffensives, empêchant leur interprétation comme code."},
+  {q:"Le Content Security Policy (CSP) est :",opts:["Un pare-feu réseau","Une politique envoyée par le serveur qui dit au navigateur quelles ressources sont autorisées","Un algorithme de hachage","Un protocole de chiffrement"],a:1,exp:"CSP agit comme un pare-feu côté navigateur. Il précise quels scripts, images, styles sont autorisés à se charger sur la page."},
+  {q:"Un nonce dans CSP doit être :",opts:["Toujours identique pour faciliter le cache","Une valeur fixe connue du développeur","Aléatoire, unique à chaque requête, difficile à deviner","Un entier entre 1 et 100"],a:2,exp:"Le nonce doit être aléatoire et unique à chaque requête. En PHP on utilise random_bytes() (plus sécurisé que rand())."},
+  {q:"Dans une attaque CSRF, le pirate exploite principalement :",opts:["La faiblesse du mot de passe de la victime","La session active de l'utilisateur connecté","Une faille dans la base de données","Le JavaScript de la page"],a:1,exp:"CSRF exploite la session active : le navigateur envoie automatiquement les cookies de session avec chaque requête vers le site ciblé."},
+  {q:"Pourquoi faut-il éviter les actions sensibles (suppression, modification) via la méthode GET ?",opts:["Car GET est plus lent que POST","Car un lien GET peut être déclenché automatiquement via une balise <img> ou un lien","Car GET ne supporte pas les cookies","Car GET chiffre mal les données"],a:1,exp:"<img src='admin/supp.php?id=5'> déclenche automatiquement la requête GET. L'administrateur ne voit rien mais l'action est exécutée."},
+  {q:"La meilleure protection contre CSRF est :",opts:["Utiliser HTTPS","Vérifier uniquement le champ HTTP_REFERER","Utiliser un token CSRF unique, secret et imprévisible dans chaque formulaire","Bloquer tous les cookies de session"],a:2,exp:"Le token CSRF est placé dans le formulaire. Comme le pirate ne peut pas le connaître, toute requête forgée est refusée par le serveur."},
+  {q:"RCE signifie :",opts:["Remote Content Exploit","Remote Code Execution (exécution de code à distance)","Restricted Code Environment","Real-time Code Evaluation"],a:1,exp:"RCE = Remote Code Execution = une vulnérabilité permettant à un attaquant d'exécuter du code arbitraire sur le serveur distant."},
+  {q:"Quelle fonction PHP est particulièrement dangereuse car elle exécute une chaîne comme du code PHP ?",opts:["strlen()","htmlspecialchars()","eval()","preg_match()"],a:2,exp:"eval() exécute une chaîne de caractères comme du code PHP. Si une entrée utilisateur y est passée directement, l'attaquant contrôle le serveur."},
+  {q:"Quelle stratégie de protection consiste à n'autoriser que les actions explicitement définies ?",opts:["Liste noire (blacklist)","Token CSRF","Liste blanche (whitelist)","Hachage des entrées"],a:2,exp:"La whitelist (liste blanche) n'autorise que ce qui est prévu. Tout le reste est refusé. C'est plus sûr que la blacklist."},
+  {q:"Qu'est-ce qu'une Rainbow Table ?",opts:["Un tableau de bord de monitoring coloré","Un tableau contenant des mots de passe déjà hachés (pré-calculés)","Une liste de vulnérabilités OWASP classées par couleur","Un outil de test de pénétration XSS"],a:1,exp:"Une Rainbow Table contient des mots de passe pré-hachés. Elle accélère la recherche d'un mot de passe à partir de son hash volé."},
+  {q:"L'attaque par force brute consiste à :",opts:["Deviner le mot de passe par manipulation sociale","Tester toutes les combinaisons possibles jusqu'à trouver le bon mot de passe","Utiliser une liste de mots de passe connus","Intercepter le trafic réseau chiffré"],a:1,exp:"Force brute = essayer systématiquement toutes les combinaisons. Plus le mot de passe est long et complexe, plus c'est difficile."},
+  {q:"Pour contrer les rainbow tables lors du stockage des mots de passe, on utilise :",opts:["MD5 sans modification","Stocker en Base64","Un sel (salt) aléatoire ajouté avant le hachage","ROT13"],a:1,exp:"Le sel (salt) est une valeur aléatoire ajoutée avant le hachage. Même deux mots de passe identiques auront des hashes différents, rendant les rainbow tables inefficaces."},
+  {q:"Le phishing est une technique qui consiste à :",opts:["Intercepter le trafic réseau sur un Wi-Fi public","Créer une fausse page ressemblant à un site légitime pour voler les identifiants","Injecter du code SQL dans un formulaire","Exploiter une faille RCE via l'URL"],a:1,exp:"Phishing = fausse page ou faux email imitant un site légitime. La victime croit se connecter au vrai site et donne ses identifiants au pirate."}
+];
+
+const OPEN_Q = [
+  {
+    q:"Expliquez la différence entre CVE, CVSS, CWE et OWASP. Donnez un exemple concret appliqué à une injection SQL.",
+    model:"<strong>OWASP</strong> liste l'injection SQL comme risque critique dans son Top 10 des applications web. <strong>CVE</strong> attribue un identifiant unique à une faille précise (ex: CVE-2021-XXXXX pour une injection découverte dans un logiciel donné). <strong>CVSS</strong> lui attribue un score de gravité de 0 à 10 (ex: 9.1/10 si elle est facilement exploitable à distance). <strong>CWE-89</strong> classifie la cause profonde : faiblesse de type 'Improper Neutralization of Special Elements used in an SQL Command'. Ces référentiels sont complémentaires : OWASP montre le risque global, CVE l'identifie précisément, CVSS mesure sa gravité et aide à prioriser, CWE explique pourquoi la faille existe."
+  },
+  {
+    q:"Décrivez le mécanisme complet d'une attaque CSRF et expliquez pourquoi le token CSRF est la meilleure contre-mesure. Pourquoi HTTP_REFERER ne suffit-il pas ?",
+    model:"<strong>Mécanisme :</strong> 1) L'administrateur est connecté à son back-office (session active avec cookies). 2) Le pirate lui envoie un email contenant <code>&lt;img src='admin/cours/supp.php?id=120'&gt;</code>. 3) Le navigateur charge 'l'image', envoyant automatiquement les cookies de session de l'admin. 4) Le serveur reçoit une requête authentifiée et supprime le cours. L'admin ne réalise rien. <strong>Token CSRF :</strong> Le serveur génère un token secret et unique par session (ex: A8f92KlmZ45) et le place dans un champ hidden. Lors de la soumission, il vérifie que le token reçu correspond. Un pirate ne peut pas connaître ce token → action refusée. <strong>HTTP_REFERER :</strong> Il peut être absent (certains navigateurs/proxies le suppriment) ou manipulé via JavaScript. Ce n'est donc qu'une protection complémentaire, pas principale."
+  },
+  {
+    q:"Listez et expliquez 5 méthodes d'attaque de type Password Guessing. Pour chacune, proposez une contre-mesure adaptée.",
+    model:"<strong>1. Test aléatoire</strong> → essai de mots de passe simples (123456, prénom). Contre-mesure : exiger un mot de passe complexe (majuscules, chiffres, caractères spéciaux, min 12 caractères). <strong>2. Attaque par dictionnaire</strong> → liste de mots de passe courants. Contre-mesure : blacklister les mots de passe les plus fréquents, limiter les tentatives. <strong>3. Force brute</strong> → toutes les combinaisons possibles. Contre-mesure : limiter à 3-5 tentatives puis bloquer temporairement + CAPTCHA. <strong>4. Rainbow Table</strong> → table de hashes pré-calculés. Contre-mesure : toujours utiliser un sel (salt) aléatoire avant le hachage avec bcrypt/Argon2. <strong>5. Phishing</strong> → fausse page pour voler les identifiants. Contre-mesure : sensibiliser les utilisateurs, imposer l'authentification à deux facteurs (2FA), utiliser HTTPS."
+  }
+];
+
+const CODE_EX = [
+  {
+    title: "Corriger une vulnérabilité d'injection SQL",
+    desc: "Le code PHP ci-dessous est vulnérable à l'injection SQL. Un attaquant peut entrer <code>' OR '1'='1</code> pour contourner l'authentification. Réécrivez-le de façon sécurisée avec PDO et des requêtes préparées.",
+    vuln: `<span class="cm">// Code vulnérable — JAMAIS en production</span>
+<span class="var">$login</span> = <span class="var">$_POST</span>[<span class="str">'login'</span>];
+<span class="var">$pass</span>  = <span class="var">$_POST</span>[<span class="str">'pass'</span>];
+
+<span class="cm">// Concaténation directe = injection possible</span>
+<span class="var">$sql</span> = <span class="str">"SELECT * FROM users WHERE login = '"</span>
+      . <span class="var">$login</span> . <span class="str">"' AND pass = '"</span> . <span class="var">$pass</span> . <span class="str">"'"</span>;
+
+<span class="var">$res</span> = <span class="fn">mysql_query</span>(<span class="var">$sql</span>);`,
+    placeholder: "// Votre code sécurisé ici\n// Utilisez PDO + prepare() + execute()\n\n$pdo = new PDO('mysql:host=...;dbname=...', $user, $pass);\n...",
+    keywords: ["prepare","execute","pdo",":login",":pass","?"],
+    hint: "Utilisez $pdo->prepare() avec des marqueurs ? ou :login/:pass, puis ->execute([$login, $pass])."
+  },
+  {
+    title: "Identifier et corriger une faille XSS",
+    desc: "Ce code PHP affiche directement l'entrée utilisateur sans filtrage. Un attaquant peut envoyer <code>?nom=&lt;script&gt;alert('XSS')&lt;/script&gt;</code>. Identifiez le problème et proposez la correction avec la fonction PHP appropriée.",
+    vuln: `<span class="cm">// Code vulnérable — NE PAS utiliser</span>
+<span class="var">$nom</span>    = <span class="var">$_GET</span>[<span class="str">'nom'</span>];
+<span class="var">$search</span> = <span class="var">$_GET</span>[<span class="str">'q'</span>];
+
+<span class="cm">// Affichage direct sans échappement</span>
+<span class="kw">echo</span> <span class="str">"Bonjour, "</span> . <span class="var">$nom</span>;
+<span class="kw">echo</span> <span class="str">"Résultats pour : "</span> . <span class="var">$search</span>;
+
+<span class="cm">// Un attaquant peut injecter : ?nom=&lt;script&gt;document.cookie&lt;/script&gt;</span>`,
+    placeholder: "// Votre code sécurisé ici\n// Utilisez la fonction PHP adaptée pour échapper les caractères HTML\n\n$nom = $_GET['nom'];\necho ...",
+    keywords: ["htmlspecialchars","htmlentities","ens_html","strip_tags"],
+    hint: "Utilisez htmlspecialchars($variable, ENT_QUOTES, 'UTF-8') autour de chaque variable affichée."
+  }
+];
+
+let timerSec = 3600;
+let timerEl = document.getElementById('timer-display');
+let interval = setInterval(() => {
+  timerSec--;
+  let m = Math.floor(timerSec / 60);
+  let s = timerSec % 60;
+  timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  if (timerSec <= 600) timerEl.className = 'warn';
+  if (timerSec <= 120) timerEl.className = 'danger';
+  if (timerSec <= 0) { clearInterval(interval); submitAll(); }
+}, 1000);
+
+let answers = {};
+let codeAnswers = {};
+let submitted = false;
+
+function buildQCM() {
+  let z = document.getElementById('qcm-zone');
+  QCM.forEach((q, i) => {
+    let d = document.createElement('div');
+    d.className = 'q-card';
+    d.id = 'qcard-' + i;
+    d.innerHTML = `
+      <div class="q-num">Q${i+1} / 25 &nbsp;·&nbsp; QCM</div>
+      <div class="q-text">${q.q}</div>
+      <div class="opts" id="opts-${i}">
+        ${q.opts.map((o,j) => `
+          <label class="opt" id="opt-${i}-${j}" onclick="selectOpt(${i},${j})">
+            <input type="radio" name="q${i}" value="${j}"> ${o}
+          </label>`).join('')}
+      </div>
+      <div class="feedback" id="fb-${i}"></div>`;
+    z.appendChild(d);
+  });
+}
+
+function selectOpt(qi, oi) {
+  if (submitted) return;
+  answers[qi] = oi;
+  document.querySelectorAll(`[id^="opt-${qi}-"]`).forEach(el => el.classList.remove('selected'));
+  document.getElementById(`opt-${qi}-${oi}`).classList.add('selected');
+  let correct = Object.values(answers).filter((v,i) => v === QCM[i].a).length;
+  document.getElementById('sc-qcm').textContent = correct + ' / 25';
+}
+
+function buildOpen() {
+  let z = document.getElementById('open-zone');
+  OPEN_Q.forEach((q, i) => {
+    let d = document.createElement('div');
+    d.className = 'q-card';
+    d.innerHTML = `
+      <div class="q-num">Q${26+i} / 30 &nbsp;·&nbsp; Question ouverte</div>
+      <div class="q-text">${q.q}</div>
+      <textarea class="open-q" id="openq-${i}" placeholder="Rédigez votre réponse ici..." oninput="updateOpenScore()"></textarea>
+      <button class="model-btn" onclick="toggleModel(${i})">Voir réponse modèle ↓</button>
+      <div class="model-ans" id="model-${i}">${q.model}</div>`;
+    z.appendChild(d);
+  });
+}
+
+function toggleModel(i) {
+  document.getElementById('model-' + i).classList.toggle('show');
+}
+
+function updateOpenScore() {
+  let n = OPEN_Q.filter((_, i) => (document.getElementById('openq-' + i) || {}).value?.trim().length > 15).length;
+  document.getElementById('sc-open').textContent = n + ' / 3';
+}
+
+function buildCode() {
+  let z = document.getElementById('code-zone');
+  CODE_EX.forEach((ex, i) => {
+    let d = document.createElement('div');
+    d.className = 'q-card';
+    d.innerHTML = `
+      <div class="q-num">Exercice ${i+1} / 2 &nbsp;·&nbsp; Code PHP</div>
+      <div class="q-text" style="font-weight:600;font-size:15px;margin-bottom:8px">${ex.title}</div>
+      <div class="q-text">${ex.desc}</div>
+      <div class="code-box" style="margin:12px 0 8px">
+        <div class="cb-header">
+          <span class="cb-dot r"></span><span class="cb-dot y"></span><span class="cb-dot g"></span>
+          &nbsp;vulnerable.php
+        </div>
+        <pre>${ex.vuln}</pre>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-family:var(--mono)">// Votre version corrigée :</div>
+      <textarea class="code-input" id="code-${i}" placeholder="${ex.placeholder}" oninput="checkCodeProgress()"></textarea>
+      <button class="run-btn" onclick="evalCode(${i})">Vérifier →</button>
+      <div class="code-result" id="cr-${i}"></div>`;
+    z.appendChild(d);
+  });
+}
+
+function checkCodeProgress() {
+  let n = CODE_EX.filter((_, i) => (document.getElementById('code-' + i) || {}).value?.trim().length > 20).length;
+  document.getElementById('sc-code').textContent = n + ' / 2';
+}
+
+function evalCode(i) {
+  let val = (document.getElementById('code-' + i).value || '').toLowerCase();
+  let ex = CODE_EX[i];
+  let found = ex.keywords.filter(k => val.includes(k.toLowerCase()));
+  let cr = document.getElementById('cr-' + i);
+  cr.classList.add('show');
+  if (found.length >= 2) {
+    cr.className = 'code-result show ok';
+    cr.textContent = '✓ Bonne approche ! Mots-clés détectés : ' + found.join(', ') + '. ' + ex.hint;
+    codeAnswers[i] = 1;
+  } else {
+    cr.className = 'code-result show ko';
+    cr.textContent = '✗ Incomplet. Indice : ' + ex.hint;
+    codeAnswers[i] = 0;
+  }
+  let total = Object.values(codeAnswers).reduce((a, b) => a + b, 0);
+  document.getElementById('sc-code').textContent = total + ' / 2';
+}
+
+function submitAll() {
+  if (submitted) return;
+  submitted = true;
+  clearInterval(interval);
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').textContent = 'Examen soumis ✓';
+
+  let qcmCorrect = 0;
+  QCM.forEach((q, i) => {
+    let ans = answers[i];
+    let card = document.getElementById('qcard-' + i);
+    let fb = document.getElementById('fb-' + i);
+    document.querySelectorAll(`[id^="opt-${i}-"]`).forEach(el => {
+      el.querySelector('input').disabled = true;
+      let j = parseInt(el.id.split('-')[2]);
+      if (j === q.a) el.classList.add('correct-ans');
+      else if (ans === j) el.classList.add('wrong-ans');
+    });
+    fb.classList.add('show');
+    if (ans === q.a) {
+      qcmCorrect++;
+      card.classList.add('correct');
+      fb.className = 'feedback show ok';
+      fb.textContent = '✓ Correct — ' + q.exp;
+    } else {
+      card.classList.add('wrong');
+      fb.className = 'feedback show ko';
+      let got = ans !== undefined ? 'Réponse ' + (ans+1) + ' : ' + q.opts[ans] : 'Non répondu';
+      fb.textContent = '✗ ' + got + ' | Bonne réponse : ' + q.opts[q.a] + ' — ' + q.exp;
+    }
+  });
+
+  let codeScore = Object.values(codeAnswers).reduce((a, b) => a + b, 0);
+  let total = qcmCorrect + codeScore;
+  let pct = Math.round(total / 27 * 100);
+
+  let ring = document.getElementById('score-ring');
+  let gradeEl = document.getElementById('res-grade');
+  let subEl = document.getElementById('res-sub');
+  document.getElementById('res-pct').textContent = pct + '%';
+  document.getElementById('res-pts').textContent = total + '/27 pts';
+
+  if (pct >= 85) { ring.className = 'score-ring great'; gradeEl.textContent = 'Excellent 🎯'; subEl.textContent = 'Tu maîtrises très bien le cours. Bonne chance pour le vrai examen !'; ring.querySelector('.pct').style.color='var(--accent2)'; }
+  else if (pct >= 70) { ring.className = 'score-ring good'; gradeEl.textContent = 'Bien 👍'; subEl.textContent = 'Quelques points à consolider, mais les bases sont là.'; ring.querySelector('.pct').style.color='var(--accent)'; }
+  else if (pct >= 55) { ring.className = 'score-ring ok'; gradeEl.textContent = 'Passable ⚠️'; subEl.textContent = 'Révise les chapitres où tu as le plus d'erreurs.'; ring.querySelector('.pct').style.color='var(--warn)'; }
+  else { ring.className = 'score-ring bad'; gradeEl.textContent = 'Insuffisant ❌'; subEl.textContent = 'Reprends le cours depuis le début. Tu peux le faire !'; ring.querySelector('.pct').style.color='var(--danger)'; }
+
+  document.getElementById('recap-grid').innerHTML = `
+    <div class="recap-cell"><div class="rl">QCM</div><div class="val g">${qcmCorrect} / 25</div></div>
+    <div class="recap-cell"><div class="rl">Exercices code</div><div class="val p">${codeScore} / 2</div></div>
+    <div class="recap-cell"><div class="rl">Score QCM</div><div class="val ${qcmCorrect>=18?'g':qcmCorrect>=13?'p':'d'}">${Math.round(qcmCorrect/25*100)}%</div></div>
+    <div class="recap-cell"><div class="rl">Score total</div><div class="val ${pct>=70?'g':pct>=55?'p':'d'}">${pct}%</div></div>`;
+
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+buildQCM();
+buildOpen();
+buildCode();
+</script>
+</body>
+</html>
